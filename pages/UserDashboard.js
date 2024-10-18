@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, orderBy, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import Layout from '@/components/Layout';
 import Navbar from '../components/Navbar';
 
@@ -12,6 +12,7 @@ export default function UserDashboard() {
     const [user, setUser] = useState(null);
     const [userStats, setUserStats] = useState({ theories: 0, followers: 0, following: 0 });
     const [activities, setActivities] = useState([]);
+    const [friendRequestSent, setFriendRequestSent] = useState(false); // Track friend request status
 
     useEffect(() => {
         if (id) {
@@ -27,16 +28,6 @@ export default function UserDashboard() {
                 const data = userDoc.data();
                 console.log("Full User Data:", data); // Log full user data
                 
-                // Check if theoriesCount is undefined
-                if (data.theoriesCount === undefined) {
-                    console.warn("Theories count is not defined in the user document.");
-                } else {
-                    console.log("Theories Count:", data.theoriesCount); // Log theories count
-    
-                    // Display the number of theories
-                    alert(`User has ${data.theoriesCount} theories.`);
-                }
-    
                 setUser(data);
                 setUserStats({
                     theories: data.theoriesCount || 0,
@@ -70,6 +61,24 @@ export default function UserDashboard() {
         }
     };
 
+    // Function to handle sending friend requests
+    const sendFriendRequest = async () => {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser || !user) return;
+
+        try {
+            // Add the friend request to the 'friendRequests' collection
+            await updateDoc(doc(db, 'users', user.uid), {
+                friendRequests: arrayUnion(currentUser.uid) // Add current user's ID to friend requests array
+            });
+
+            setFriendRequestSent(true); // Mark as sent
+        } catch (error) {
+            console.error("Error sending friend request:", error);
+        }
+    };
+
     const selectUser = () => {
         if (!user) return;
 
@@ -98,6 +107,13 @@ export default function UserDashboard() {
                         <div className="flex space-x-4 mb-2">
                             <button onClick={selectUser} className="bg-blue-500 text-white px-4 py-2 rounded">
                                 Message
+                            </button>
+                            <button
+                                onClick={sendFriendRequest}
+                                disabled={friendRequestSent}
+                                className={`bg-green-500 text-white px-4 py-2 rounded ${friendRequestSent ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {friendRequestSent ? 'Request Sent' : 'Send Friend Request'}
                             </button>
                         </div>
                     </div>

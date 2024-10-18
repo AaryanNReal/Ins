@@ -36,7 +36,7 @@ export default function SearchPage() {
             }
         };
 
-        const debounceFetch = setTimeout(fetchUsers, 300); // Debounce for better performance
+        const debounceFetch = setTimeout(fetchUsers,300); // Debounce for better performance
 
         return () => clearTimeout(debounceFetch); // Cleanup the timeout on unmount
     }, [username]); // Run the effect whenever username changes
